@@ -426,7 +426,7 @@ output$fig_1 <- renderPlotly({ hist_out <- histogram_boxplot()
               marker = list(size = 10),
               text = paste("Ihre prognostizierte Kaltmiete liegt zwischen",(ceiling(prediction_rf2()*0.98)),"€ und ",(ceiling(prediction_rf2()*1.02)), "€."),
               hoverinfo = 'text',name = "Ihre prognostizierte Miete")%>%
-    config(modeBarButtonsToRemove = c("pan2d", "resetScale2d","hoverClosestCartesian","hoverCompareCartesian","zoom2d","select2d","lasso2d","toImage"),displaylogo=FALSE)%>%plotly::layout(legend = list(orientation = "h",xanchor = "left", x = 0.0,borderwidth=1,itemclick=FALSE,itemdoubleclick=FALSE, groupclick = FALSE),title = list(text=sprintf("Histogramm der Miete (kalt) <br> und Ihre prognostizierte Miete"),y = 0.96, x = 0.5),xaxis = list(),yaxis=list(title ="Anzahl"))})
+    config(modeBarButtonsToRemove = c("pan2d", "resetScale2d","hoverClosestCartesian","hoverCompareCartesian","zoom2d","select2d","lasso2d","toImage"),displaylogo=FALSE)%>%plotly::layout(legend = list(orientation = "h",xanchor = "left", x = 0.0,borderwidth=1,itemclick=FALSE,itemdoubleclick=FALSE, groupclick = FALSE),title = list(font=list(size = 14), text=sprintf("Histogramm der Miete (kalt) <br> und Ihre prognostizierte Miete"),y = 0.95, x = 0.5),xaxis = list(),yaxis=list(title ="Anzahl"))})
     
 output$fig_2 <- renderPlotly({ hist_out <- histogram_boxplot()
 plot_ly(data=histo, x =hist_out$baseRent, type = 'box',hoverinfo = 'x')%>%
@@ -435,7 +435,7 @@ plot_ly(data=histo, x =hist_out$baseRent, type = 'box',hoverinfo = 'x')%>%
   add_trace(x = ~c(ceiling(prediction_rf2())), y=c(0), type='scatter', mode='markers',marker=list(color="orange", size = 15),
           text = paste("Ihre prognostizierte Kaltmiete liegt zwischen",(ceiling(prediction_rf2()*0.98)),"€ und ",(ceiling(prediction_rf2()*1.02)), "€."),
             hoverinfo = "text",name = "Ihre prognostizierte Miete")%>%
-config(modeBarButtonsToRemove = c("pan2d", "resetScale2d","hoverClosestCartesian","hoverCompareCartesian","zoom2d","select2d","lasso2d","toImage"),displaylogo=FALSE)%>%plotly::layout(title = list(text=sprintf("Boxplot der Miete (kalt) <br> und Ihre prognostizierte Miete"),y = 0.96, x = 0.5),xaxis = list(title ="Mietpreis (kalt) in €",zeroline = FALSE),yaxis=list(showticklabels = FALSE))})
+config(modeBarButtonsToRemove = c("pan2d", "resetScale2d","hoverClosestCartesian","hoverCompareCartesian","zoom2d","select2d","lasso2d","toImage"),displaylogo=FALSE)%>%plotly::layout(title = list(font=list(size = 14),text=sprintf("Boxplot der Miete (kalt) <br> und Ihre prognostizierte Miete"),y = 0.95, x = 0.5),xaxis = list(title ="Mietpreis (kalt) in €",zeroline = FALSE),yaxis=list(showticklabels = FALSE))})
 }
 #Aufruf der App
 shinyApp(ui, server)
