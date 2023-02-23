@@ -1,18 +1,33 @@
 ########################################################
 #App zur Ermittlung der monatlichen Kalt- und Warmmiete
-#E-Mail
-# Datum (2022-12-12)
 ########################################################
 
 #Import der Bibliotheken
-library(shiny)
+#install.packages("install.load")
+install.load::install_load("shiny", "shinyWidgets", "shinycssloaders","leaflet", "ranger","ggplot2")
+packages <- c("shinydashboard","plotly","DT")
+installed_packages <- packages %in% rownames(installed.packages())
+if (any(installed_packages == FALSE)) {  install.packages(packages[!installed_packages]) }
+#Da die App unter https://www.shinyapps.io/ veröffentlicht wurde reicht es nicht die libaries nur über install_load zu importieren, deshalb wurden diese noch zusätzlich eingebunden
 library(shinydashboard,warn.conflicts = FALSE)
+library(plotly,warn.conflicts = FALSE)
+library(DT,warn.conflicts = FALSE)
+library(shiny)
 library(shinyWidgets)
 library(shinycssloaders)
 library(ggplot2)
-library(plotly,warn.conflicts = FALSE)
 library(leaflet)
 library(ranger)
+
+#print(paste("shiny Version:",packageVersion("shiny")))                         # "shiny Version: 1.7.2"
+#print(paste("shinywidgets Version:",packageVersion("shinyWidgets")))           # "shinywidgets Version: 0.7.3"
+#print(paste("shinycssloaders Version:",packageVersion("shinycssloaders")))     # "shinycssloaders Version: 1.0.0"
+#print(paste("leafet Version:",packageVersion("leaflet")))                      # "leafet Version: 2.1.1"
+#print(paste("ranger Version:",packageVersion("ranger")))                       # "ranger Version: 0.14.1"
+#print(paste("ggplot2 Version:",packageVersion("ggplot2")))                     # "ggplot2 Version: 3.3.6"
+#print(paste("shinydashboard Version:",packageVersion("shinydashboard")))       # "shinydashboard Version: 0.7.2"
+#print(paste("plotly Version:",packageVersion("plotly")))                       # "plotly Version: 4.10.0"
+#print(paste("DT Version:",packageVersion("DT")))                               # "DT Version: 0.25"
 
 #Einlesen verschiedener CSV Dateien
 histo<-read.csv('https://raw.githubusercontent.com/tobiarnold/shiny-app/main/Histogram.csv')
@@ -30,10 +45,10 @@ ui <- dashboardPage(skin="yellow",
   dashboardHeader(title = "Mietpreis Kalkulator"),
   dashboardSidebar(sidebarMenu(
                    menuItem("Kalkulator", tabName = "Kalkulator", icon = icon("gauge-high")),
+                   menuItem("Modell", tabName = "Modell", icon = icon("brain")),
                    menuItem("Datenbank", tabName = "Datenbank", icon = icon("table")),
                    menuItem("Grafiken",tabName = "Grafiken", icon = icon("chart-column")),
                    menuItem("Karte",tabName = "Karte", icon = icon("map")),
-                   menuItem("Modell", tabName = "Modell", icon = icon("brain")),
                    menuItem("Über die App & FAQ",tabName = "FAQ", icon = icon("question"))
                   )),
   dashboardBody(
@@ -82,11 +97,18 @@ ui <- dashboardPage(skin="yellow",
         HTML("<br>"),
         textOutput("histbox"),
         tags$head(tags$style("#histbox{color: black;
+                                 font-size: 16px;
+                                 background-color: lightgray;
+                                display: table;
+                                border-spacing: 15px 2px;
+                                border-radius: 25px;
+                                 }")),
+        tags$head(tags$style("#histbox{color: black;
                                  font-size: 17px;
                                  }")),
         p(""),
         splitLayout(cellWidths = c("50%", "50%"),plotly::plotlyOutput("fig_1")%>% withSpinner(color="#f89c14",type = 4,size = 1.5), 
-                    plotly::plotlyOutput("fig_2")%>% withSpinner(color="#f89c14",type = 5,size = 0)),
+                    plotly::plotlyOutput("fig_2")%>% withSpinner(color="#f89c14",type = 4,size = 0)),
         p(""),
         textOutput("info"),
         tags$head(tags$style("#info{color: black;
@@ -99,14 +121,46 @@ ui <- dashboardPage(skin="yellow",
       ),),
 #Tab2
       tabItem(
+        tabName = "Modell",
+        h3("👩‍💻 Machine Learning Modell"),
+        p(""),
+        p(class="bold","verwendeter Algorithmus: Random Forest mittels Ranger Bibliothek."),
+        tags$a(href="https://cran.r-project.org/web/packages/ranger/ranger.pdf", "Leitfaden Ranger Bibliothek "),
+        p("Für die Modelle werden 50.656 Wohnobjekte vom Algorithmus verarbeitet."),
+        p(""),
+        h4(class="background","🌡️️ Modell 1 zur Kalkulation der Miete warm:"),
+        verbatimTextOutput("randomforest"),
+        p(""),
+        h4(class="background","❄️ Modell 2 zur Kalkulation der Miete kalt:"),
+        verbatimTextOutput("randomforest2"),
+        p(""),
+        tags$div(tags$ul (class="liste1",
+                          p("Folgende Features wurden zur Kalkulation der Miete genutzt:"),
+                          tags$li(tags$span(tags$b("livingSpaceRange:"), "Wohnfläche, aufgeteilt in Binnings 1-7 und", tags$b("livingSpace:"), "Wohnfläche in m²")),
+                          tags$li(tags$span(tags$b("noRoomsRange:"), "Anzahl Räume, aufgeteilt in Binnings 1-5 und", tags$b("noRooms:"), "Anzahl Räume")),
+                          tags$li(tags$span(tags$b("yearConstructedRange:"), "Baujahr Gesamtgebäude, aufgeteilt in Binnings 1-9 und", tags$b("yearConstructed:"), "Baujahr Gesamtgebäude")),
+                          tags$li(tags$span(tags$b("regio1_numeric:"), "Bundesland in dem die Wohnung liegt und", tags$b("big_city:"), "Ort mit >100.000 Einwohnern")),
+        )),
+        p(""),
+        plotly::plotlyOutput("fig_7"),
+        p(""),
+        tags$div(tags$ul (class="liste",
+                          p("Beide Modelle weisen die höchste Wichtigkeit bei den Features Wohnraum und dem Bundesland auf."))),
+        plotly::plotlyOutput("fig_8"),
+        p(""),
+        plotly::plotlyOutput("fig_9"),
+        p(""),
+      ),
+#Tab3
+      tabItem(
       tabName = "Datenbank",
       h3("🗃️ Auszug aus unserer Datenbank"),
       p("Die Tabelle enthält die aggregierten Daten, gruppiert nach der Postleitzahl."),
       p("Mit den Filtern oberhalb der Spalten oder der Suchfunktion rechts kann gezielt nach spezifischen Werten gesucht werden."),
       p("Durch Klicken auf die Spaltenüberschriften lassen sich die Spalten aufsetigend oder absteigend sortieren."),
-      DT::dataTableOutput("mytable"),
+      DT::DTOutput("mytable"),
       ),
-#Tab3
+#Tab4
       tabItem(
       tabName = "Grafiken",
       h3("📊 Grafiken aus dem Datensatz"),
@@ -126,8 +180,6 @@ ui <- dashboardPage(skin="yellow",
       tags$div(class = "liste",tags$ul (
         p("Die Ertäge der Vermieter steigen jedes Jahr kontinuierlich."))),
       plotly::plotlyOutput("fig_11"),
-      
-      
       tags$div(class = "liste",tags$ul (
         p("Quellen:"),
         tags$a(href="https://www.kaggle.com/datasets/corrieaar/apartment-rental-offers-in-germany", "Apartment rental offers in Germany"),
@@ -136,9 +188,8 @@ ui <- dashboardPage(skin="yellow",
         p(""),
         tags$a(href="https://www.iwd.de/artikel/immer-mehr-private-vermieter-in-deutschland-536832/", 'Institut der deutschen Wirtschaft: "Immer mehr private Vermieter in Deutschland"')
       ))
-      
       ),
-#Tab4
+#Tab5
       tabItem(
         tabName = "Karte",
         h3("🗺️ Interaktive Karte"),
@@ -147,38 +198,6 @@ ui <- dashboardPage(skin="yellow",
         p("Zum zoomen auf gewünschte Stelle klicken, Scrollrad der Maus benutzen oder Plus/Minus Button auf der Karte"),
         p(""),
         leafletOutput("mymap",height="100vh"),
-      ),
-#Tab5
-      tabItem(
-        tabName = "Modell",
-        h3("👩‍💻 Machine Learning Model"),
-        p(""),
-        p(class="bold","verwendeter Algorithmus: Random Forest mittels Ranger Bibliothek."),
-        tags$a(href="https://cran.r-project.org/web/packages/ranger/ranger.pdf", "Leitfaden Ranger Bibliothek "),
-        p("Für die Modelle werden 50.656 Wohnobjekte vom Algorithmus verarbeitet."),
-        p(""),
-        h4(class="background","🌡️️ Modell 1 zur Kalkulation der Miete warm:"),
-        verbatimTextOutput("randomforest"),
-        p(""),
-        h4(class="background","❄️ Modell 2 zur Kalkulation der Miete kalt:"),
-        verbatimTextOutput("randomforest2"),
-        p(""),
-        tags$div(tags$ul (class="liste",
-          p("Folgende Features wurden zur Kalkulation der Miete genutzt:"),
-          tags$li(tags$span(tags$b("livingSpaceRange:"), "Wohnfläche, aufgeteilt in Binnings 1-7 und", tags$b("livingSpace:"), "Wohnfläche in m²")),
-          tags$li(tags$span(tags$b("noRoomsRange:"), "Anzahl Räume, aufgeteilt in Binnings 1-5 und", tags$b("noRooms:"), "Anzahl Räume")),
-          tags$li(tags$span(tags$b("yearConstructedRange:"), "Baujahr Gesamtgebäude, aufgeteilt in Binnings 1-9 und", tags$b("yearConstructed:"), "Baujahr Gesamtgebäude")),
-          tags$li(tags$span(tags$b("regio1_numeric:"), "Bundesland in dem die Wohnung liegt und", tags$b("big_city:"), "Ort mit >100.000 Einwohnern")),
-          )),
-        p(""),
-        plotly::plotlyOutput("fig_7"),
-        p(""),
-        tags$div(tags$ul (class="liste",
-          p("Beide Modelle weisen die höchste Wichtigkeit bei den Features Wohnraum und dem Bundesland auf."))),
-        plotly::plotlyOutput("fig_8"),
-        p(""),
-        plotly::plotlyOutput("fig_9"),
-        p(""),
       ),
 #Tab6
       tabItem(
@@ -225,9 +244,11 @@ server <- function(input, output, session) {
 output$parameter1<-renderText({paste( "Wohnraum:",input$Wohnraum,"qm","|Anzahl Räume:",input$Anzahl_Räume,"|Baujahr:", input$Baujahr)})
 output$parameter2<-renderText({paste( "Bundesland:",input$Bundesland,"|Großstadt:",input$Großstadt)})
 #Tabelle
+options(DT.fillContainer = FALSE) 
 tabelle <-readr::read_csv('https://raw.githubusercontent.com/tobiarnold/shiny-app/main/tabelle.csv',show_col_types = FALSE)
-output$mytable <- DT::renderDataTable(tabelle,style="auto",filter="top",callback=JS('$(\'div.has-feedback input[type="search"]\').attr( "placeholder", "Filter" )'),
-                                      options = list(language = list(sInfoThousands=".",zeroRecords="Keine Daten gefunden.",lengthMenu="Zeige _MENU_ Einträge",search = "Suche",info = 'Insgesamt _TOTAL_ Zeilen.  Angezeigt werden _START_ bis _END_ Elemente.',sInfoFiltered	="(gefiltert von _MAX_ Einträgen)",paginate =list('next'="vor", previous="zurück"))))
+output$mytable <- DT::renderDT(DT::datatable(tabelle,rownames = FALSE,style="auto",filter="top",callback=JS('$(\'div.has-feedback input[type="search"]\').attr( "placeholder", "Filter" )'),
+                                      options = list(autoWidth = TRUE,scrollX = TRUE,language = list(sInfoThousands=".",zeroRecords="Keine Daten gefunden.",lengthMenu="Zeige _MENU_ Einträge",search = "Suche",info = 'Insgesamt _TOTAL_ Zeilen.  Angezeigt werden _START_ bis _END_ Elemente.',sInfoFiltered	="(gefiltert von _MAX_ Einträgen)",paginate =list('next'="vor", previous="zurück"))))%>%
+                                      DT::formatStyle(0:8, backgroundColor = 'white', opacity = 1))
 #Grafiken
 output$fig_3 <- plotly::renderPlotly(plot_ly(data = durchschnittsmieten,x =~Bundesland, y=~Durchschnittsmiete,type = "bar", orientation = "v") %>% 
                                config(modeBarButtonsToRemove = c("pan2d", "resetScale2d","hoverClosestCartesian","hoverCompareCartesian","zoom2d","select2d","lasso2d"),displaylogo=FALSE)
@@ -408,7 +429,6 @@ hibo <- eventReactive (input$action,{
 info<-eventReactive (input$action,{
   info<-"Weitere Informationen zur Vermietung und zur Funktionsweise der App finden Sie in den Reitern der linken Sidebar."})
 
-
 output$pred<-renderText({paste("Ihre monatliche Warmmiete beträgt zwischen ",(ceiling(prediction_rf()*0.98)),"€ und ",(ceiling(prediction_rf()*1.02)), "€.")})
 output$pred2<-renderText({paste("Ihre monatliche Kaltmiete beträgt zwischen ",(ceiling(prediction_rf2()*0.98)),"€ und ",(ceiling(prediction_rf2()*1.02)), "€.")})
 output$histbox <-renderText({paste(hibo())})
@@ -429,10 +449,10 @@ output$fig_1 <- renderPlotly({ hist_out <- histogram_boxplot()
     config(modeBarButtonsToRemove = c("pan2d", "resetScale2d","hoverClosestCartesian","hoverCompareCartesian","zoom2d","select2d","lasso2d","toImage"),displaylogo=FALSE)%>%plotly::layout(legend = list(orientation = "h",xanchor = "left", x = 0.0,borderwidth=1,itemclick=FALSE,itemdoubleclick=FALSE, groupclick = FALSE),title = list(font=list(size = 14), text=sprintf("Histogramm der Miete (kalt) <br> und Ihre prognostizierte Miete"),y = 0.95, x = 0.5),xaxis = list(),yaxis=list(title ="Anzahl"))})
     
 output$fig_2 <- renderPlotly({ hist_out <- histogram_boxplot()
-plot_ly(data=histo, x =hist_out$baseRent, type = 'box',hoverinfo = 'x')%>%
+plotly::plot_ly(data=histo, x =hist_out$baseRent, y = "trace_0", type = 'box',hoverinfo = 'x')%>%
   layout(hovermode = "x",showlegend = FALSE)%>% 
   layout(yaxis = list(range = c(-1,2))) %>%
-  add_trace(x = ~c(ceiling(prediction_rf2())), y=c(0), type='scatter', mode='markers',marker=list(color="orange", size = 15),
+  add_trace(x = ~c(ceiling(prediction_rf2())), type='scatter', mode='markers',marker=list(color="orange", size = 15),
           text = paste("Ihre prognostizierte Kaltmiete liegt zwischen",(ceiling(prediction_rf2()*0.98)),"€ und ",(ceiling(prediction_rf2()*1.02)), "€."),
             hoverinfo = "text",name = "Ihre prognostizierte Miete")%>%
 config(modeBarButtonsToRemove = c("pan2d", "resetScale2d","hoverClosestCartesian","hoverCompareCartesian","zoom2d","select2d","lasso2d","toImage"),displaylogo=FALSE)%>%plotly::layout(title = list(font=list(size = 14),text=sprintf("Boxplot der Miete (kalt) <br> und Ihre prognostizierte Miete"),y = 0.95, x = 0.5),xaxis = list(title ="Mietpreis (kalt) in €",zeroline = FALSE),yaxis=list(showticklabels = FALSE))})
